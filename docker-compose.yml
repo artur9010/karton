@@ -1,0 +1,47 @@
+version: '3.7'
+
+services:
+  # Samba
+  rclone:
+    image: mumiehub/rclone-mount
+    container_name: karton_rclone
+    restart: always
+    devices:
+      - "/dev/fuse"
+    environment:
+      - "RemotePath=karton-data:"
+      - MountCommands=--default-permissions --allow-other --dir-perms 0777 --file-perms 0777 --allow-non-empty --vfs-cache-mode full --no-modtime
+    volumes:
+      - ./rclone.conf:/config/.rclone.conf
+      - /mnt/mediaefs:/mnt/mediaefs:shared
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+    healthcheck:
+      test: ls /mnt/mediaefs || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+  samba:
+    image: m4rc77/samba
+    container_name: karton_samba
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      - "445:445/tcp"
+    restart: always
+    depends_on:
+      - "rclone"
+    environment:
+      - TZ=UTC
+      - WORKGROUP=workgroup
+      - USER=artur9010;haslo;1000;artur9010;1000
+      - RECYCLE=false
+      - SHARE=Arturowy Karton;/data/karton;yes;no;no;artur9010;artur9010;artur9010;
+    volumes:
+      - /mnt/mediaefs:/data:shared
+    command: '-n -r -p -g "vfs objects = catia" '
+
