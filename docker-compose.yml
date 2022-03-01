@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  # Samba
+  # rclone mount s3
   rclone:
     image: mumiehub/rclone-mount
     container_name: karton_rclone
@@ -9,8 +9,8 @@ services:
     devices:
       - "/dev/fuse"
     environment:
-      - "RemotePath=karton-data:"
-      - MountCommands=--default-permissions --allow-other --dir-perms 0777 --file-perms 0777 --allow-non-empty --vfs-cache-mode full --no-modtime
+      - "RemotePath=karton:"
+      - MountCommands=--default-permissions --allow-other --dir-perms 0777 --file-perms 0777 --umask 000 --uid 1000 --gid 1000 --allow-non-empty --vfs-cache-mode full
     volumes:
       - ./rclone.conf:/config/.rclone.conf
       - /mnt/mediaefs:/mnt/mediaefs:shared
@@ -19,29 +19,39 @@ services:
     cap_add:
       - SYS_ADMIN
     healthcheck:
-      test: ls /mnt/mediaefs || exit 1
+      test: ls /mnt/mediaefs/karton || exit 1
       interval: 5s
       timeout: 3s
       retries: 3
       start_period: 15s
-  samba:
+  # samba
+  samba:  
     image: m4rc77/samba
-    container_name: karton_samba
-    ports:
-      - "137:137/udp"
-      - "138:138/udp"
-      - "139:139/tcp"
-      - "445:445/tcp"
+    container_name: karton_samba  
+    network_mode: host
     restart: always
     depends_on:
       - "rclone"
-    environment:
+    environment:  
       - TZ=UTC
-      - WORKGROUP=workgroup
-      - USER=artur9010;haslo;1000;artur9010;1000
+      - WORKGROUP=workgroup  
+      - USER=artur9010;haseuko;1000;artur9010;1000
       - RECYCLE=false
-      - SHARE=Arturowy Karton;/data/karton;yes;no;no;artur9010;artur9010;artur9010;
+    volumes:  
+      - /mnt/mediaefs/karton:/karton:shared
+    command: '-n -r -p -g "fruit:appl = yes" -g "fruit:time machine = yes" -g "fruit:time machine max size = 600G" -s "Arturowy Karton;/karton/karton;yes;no;no;artur9010;artur9010;artur9010;" -s "TimeMachine;/karton/timemachine;yes;no;no;artur9010;artur9010;artur9010;"'
+  # octoprint
+  octoprint:
+    image: octoprint/octoprint
+    restart: unless-stopped
+    ports:
+      - 80:80
+    # devices:
+    # use `python -m serial.tools.miniterm` to see what the name is of the printer
+    #  - /dev/ttyACM0:/dev/ttyACM0
+    #  - /dev/video0:/dev/video0
     volumes:
-      - /mnt/mediaefs:/data:shared
-    command: '-n -r -p -g "vfs objects = catia" '
+     - octoprint:/octoprint
 
+volumes:
+  octoprint:
