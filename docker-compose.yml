@@ -9,6 +9,17 @@ services:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+  # dashboard xd
+  homer:
+    image: b4bz/homer:latest
+    restart: always
+    environment:
+      - VIRTUAL_HOST=karton.lan,karton.local
+      - VIRTUAL_PORT=8080
+      - UID=1000
+      - GID=1000
+    volumes:
+      - ./homer:/www/assets
   # rclone mount s3
   rclone:
     image: mumiehub/rclone-mount
