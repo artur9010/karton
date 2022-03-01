@@ -1,6 +1,14 @@
 version: '3.7'
 
 services:
+  # nginx auto-proxy
+  nginx:
+    image: nginxproxy/nginx-proxy:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
   # rclone mount s3
   rclone:
     image: mumiehub/rclone-mount
@@ -44,8 +52,9 @@ services:
   octoprint:
     image: octoprint/octoprint
     restart: unless-stopped
-    ports:
-      - 80:80
+    environment:
+      - VIRTUAL_HOST=octoprint.local
+      - VIRTUAL_PORT=80
     # devices:
     # use `python -m serial.tools.miniterm` to see what the name is of the printer
     #  - /dev/ttyACM0:/dev/ttyACM0
